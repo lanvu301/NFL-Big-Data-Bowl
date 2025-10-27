@@ -1,4 +1,4 @@
-plays <- read.csv("C:/Users/lanvu/Downloads/nfl-big-data-bowl-2025/plays.csv")
+plays <- read.csv("plays.csv")
 View(plays)
 
 dim(plays)        #  (rows, columns)
@@ -113,6 +113,29 @@ ggplot(df_4th, aes(x = pff_passCoverage, y = yardsGained)) +
        x = "Defensive Coverage Type", y = "Yards Gained") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+df_4Quarter <- subset(plays, quarter == 4 & !is.na(yardsGained))
+
+#Testing to see if 4th down is different from other downs in term of YardGain
+anova_model <- aov(yardsGained ~ factor(down), data = plays)
+summary(anova_model)
+TukeyHSD(anova_model)
+
+#Frequency table for downs
+table(plays$down)
+
+#From the anova_testing, we have not siginicant different
+#from down 1-3 but 4 down have signifcant different
+#therefore I split downs into 2 groups 1 is from 1-3 and the other one is 4th only
+plays$fourthDown <- ifelse(plays$down == 4, "4th", "1-3th")
+table(plays$fourthDown)
+
+
+
+
 
 
 
