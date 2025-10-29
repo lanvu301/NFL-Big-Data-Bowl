@@ -135,6 +135,13 @@ table(plays$fourthDown)
 
 
 
+summary(as.numeric(table(plays$gameId)))
+
+table(plays$possessionTeam)
+
+
+
+
 
 
 
