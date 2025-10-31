@@ -411,7 +411,7 @@ nrow(plays_clean)
 
 model_ols <- lm(
   yardsGained ~ fourthDown + yardsToGo + quarter + absoluteYardlineNumber +
-    offenseFormation + playAction + pff_passCoverage + pff_manZone,
+    offenseFormation + playAction + pff_passCoverage + pff_manZone+pff_passCoverage*offenseFormation,
   data = plays_clean
 )
 summary(model_ols)
@@ -491,10 +491,20 @@ car::vif(model_ols)
 model_ols1 <- lm(
   yardsGained ~ fourthDown + yardsToGo + quarter +
     absoluteYardlineNumber + offenseFormation +
-    playAction + coverage_group,
+    playAction + coverage_group+offenseFormation*coverage_group+offenseFormation*absoluteYardlineNumber,
   data = plays_clean
 )
 summary(model_ols1)
+
+#Testing interaction factors
+model_ols2 <- lm(
+  yardsGained ~ fourthDown + yardsToGo + quarter + absoluteYardlineNumber +
+    offenseFormation + playAction + coverage_group +
+    playAction*coverage_group + yardsToGo*offenseFormation +
+    playAction*offenseFormation + quarter*coverage_group,
+  data = plays_clean
+)
+
 
 # === Linearity ===
 plot(model_ols1, which = 1)  # Residuals vs Fitted
