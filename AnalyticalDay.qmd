@@ -1,0 +1,335 @@
+---
+title: "Analytical Day Report"
+format:
+  pdf:
+    pdf-engine: pdflatex
+---
+
+
+Step 0:
+```{r}
+plays <- read.csv("plays.csv")
+players <- read.csv("nfl-big-data-bowl-2025/players.csv")
+```
+
+Step 1: Clean data
+```{r}
+colSums(is.na(plays))
+```
+
+
+```{r}
+handle_missing_values <- function(df, threshold = 0.7) {
+  # Step 1: Calculate percentage of missing values per column
+  missing_percentage <- colMeans(is.na(df))
+  
+  # Step 2: Drop columns exceeding threshold
+  cols_to_drop <- names(missing_percentage[missing_percentage > threshold])
+  df <- df[ , !(names(df) %in% cols_to_drop)]
+  message("Dropped columns with more than ", threshold * 100, "% missing values: ", 
+          paste(cols_to_drop, collapse = ", "))
+  
+  # Step 3: Separate numeric and categorical columns
+  numeric_cols <- sapply(df, is.numeric)
+  categorical_cols <- !numeric_cols
+  
+  # Step 4: Impute missing values
+  # Numeric: replace NA with mean
+  for (col in names(df)[numeric_cols]) {
+    df[[col]][is.na(df[[col]])] <- mean(df[[col]], na.rm = TRUE)
+  }
+  
+  # Categorical: replace NA with mode (most frequent value)
+  mode_value <- function(x) {
+    ux <- unique(na.omit(x))
+    ux[which.max(tabulate(match(x, ux)))]
+  }
+  for (col in names(df)[categorical_cols]) {
+    df[[col]][is.na(df[[col]])] <- mode_value(df[[col]])
+  }
+  
+  # Step 5: Verify cleanup
+  remaining_missing <- colSums(is.na(df))
+  message("\nRemaining missing values after handling:\n")
+  print(remaining_missing)
+  
+  return(df)
+}
+
+clean_plays<-handle_missing_values(plays)
+```
+
+STEP 2: Relationship BETWEEN OFFENSE FORMATION AND YARDGAINED
+A: Basic distribtuion of YardGained
+```{r}
+library(ggplot2)
+
+ggplot(clean_plays, aes(x = yardsGained)) +
+  geom_histogram(binwidth = 2, fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(title = "Distribution of Yards Gained",
+       x = "Yards Gained",
+       y = "Frequency") +
+  theme_minimal(base_size = 14)
+
+```
+Barplot of OffenseFormation
+```{r}
+ggplot(clean_plays, aes(x = offenseFormation)) +
+  geom_bar(fill = "darkorange", color = "black", alpha = 0.8) +
+  labs(title = "Frequency of Offensive Formations",
+       x = "Offensive Formation",
+       y = "Count") +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+Bar plot of distribution of passCoverage
+```{r}
+ggplot(clean_plays, aes(x = pff_passCoverage)) +
+  geom_bar(fill = "seagreen3", color = "black", alpha = 0.8) +
+  labs(title = "Distribution of Pass Coverage Types",
+       x = "PFF Pass Coverage",
+       y = "Count") +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+library(tidyverse)
+
+formation_success <- clean_plays %>%
+  group_by(offenseFormation) %>%
+  summarise(Average_Yards_Gained = mean(yardsGained, na.rm = TRUE)) %>%
+  arrange(desc(Average_Yards_Gained))
+
+# Step 2: Print results in styled console output
+cat("\nAverage Yards Gained by Formation:\n")
+cat(strrep("=", 50), "\n")
+cat(sprintf("%-25s %-25s\n", "Formation", "Average Yards Gained"))
+cat(strrep("-", 50), "\n")
+
+for (i in seq_len(nrow(formation_success))) {
+  formation <- formation_success$offenseFormation[i]
+  yards <- formation_success$Average_Yards_Gained[i]
+  
+  
+  cat(sprintf("%-25s %-25.2f\n", formation, yards))
+}
+
+# Step 3: Visualization (bar chart)
+ggplot(formation_success, aes(x = reorder(offenseFormation, Average_Yards_Gained),
+                              y = Average_Yards_Gained,
+                              fill = Average_Yards_Gained>0))+
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("TRUE" = "seagreen3", "FALSE" = "firebrick2")) +
+  coord_flip() +
+  labs(
+    title = "Average Yards Gained by Offensive Formation",
+    x = "Offensive Formation",
+    y = "Average Yards Gained"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none")
+```
+Ok trying new plot with freq added to the graph
+```{r}
+formation_summary <- clean_plays %>%
+  group_by(offenseFormation) %>%
+  summarise(
+    avg_yards = mean(yardsGained, na.rm = TRUE),
+    count = n()
+  )
+
+ggplot(formation_summary, aes(x = reorder(offenseFormation, avg_yards))) +
+  geom_col(aes(y = count / max(count) * max(avg_yards)), 
+           fill = "gray80", width = 0.6) +
+  geom_line(aes(y = avg_yards, group = 1, color = "Average Yards"), linewidth = 1.2) +
+  geom_point(aes(y = avg_yards, color = "Average Yards"), size = 3) +
+  coord_flip() +
+  scale_color_manual(values = c("Average Yards" = "darkgreen")) +
+  labs(
+    title = "Formation Effectiveness (Frequency vs Average Yards)",
+    x = "Offensive Formation",
+    y = "Scaled Count / Average Yards"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.title = element_blank())
+
+```
+
+Ok next is OffenseFormation by PassCoverage
+
+
+Let's group the pass_coverage to smaller group
+
+```{r}
+clean_plays$coverage_group <- clean_plays$pff_passCoverage
+
+clean_plays$coverage_group <- forcats::fct_collapse(
+  clean_plays$coverage_group,
+  Cover_3 = c("Cover-3", "Cover-3 Cloud Left", "Cover-3 Cloud Right",
+              "Cover-3 Seam", "Cover-3 Double Cloud"),
+  Cover_6 = c("Cover 6-Left", "Cover-6 Right"),
+  Cover_1 = c("Cover-1", "Cover-1 Double"),
+  Other_Rare = c("Bracket", "Miscellaneous", "Prevent", "2-Man", "Goal Line")
+)
+```
+See the distribution after grouping
+
+```{r}
+ggplot(clean_plays, aes(x = coverage_group)) +
+  geom_bar(fill = "seagreen3", color = "black", alpha = 0.8) +
+  labs(title = "Distribution of Pass Coverage Types",
+       x = "PFF Pass Coverage",
+       y = "Count") +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+Now run the plot
+```{r}
+library(dplyr)
+
+yards_by_formation_cov <- clean_plays %>%
+  group_by(offenseFormation, coverage_group) %>%
+  summarise(
+    avg_yards = mean(yardsGained, na.rm = TRUE),
+    play_count = n(),
+    .groups = "drop"
+  )
+
+```
+Visualize it
+```{r}
+library(ggplot2)
+
+ggplot(yards_by_formation_cov, 
+       aes(x = offenseFormation, y = avg_yards, fill = coverage_group)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "gray30") +
+  scale_fill_manual(
+    values = c(
+      "Cover-0"   = "#FFD23F",  # golden yellow
+      "Cover-1"   = "#FFB703",  # orange-yellow
+      "Cover-2"   = "#90CAF9",  # light blue
+      "Cover-3"   = "#2196F3",  # mid blue
+      "Cover-6"   = "#1565C0",  # deep blue
+      "Quarters"  = "#6A1B9A",  # purple accent
+      "Red Zone"  = "#E63946",  # red
+      "Other_Rare"= "#8D99AE"   # neutral gray
+    )
+  ) +
+  labs(
+    title = "Average Yards Gained by Formation and Pass Coverage",
+    x = "Offensive Formation",
+    y = "Average Yards Gained",
+    fill = "Pass Coverage Type"
+  )+
+  theme_minimal(base_size = 13) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+OK NOW OFFENSIVE FORMATION IN DIFFERENT QUARTER
+
+Compute the yardGain by formation
+```{r}
+library(dplyr)
+
+# Summarize average yards by formation and quarter
+yards_by_quarter <- clean_plays %>%
+  group_by(offenseFormation, quarter) %>%
+  summarise(
+    avg_yards = mean(yardsGained, na.rm = TRUE),
+    play_count = n(),
+    .groups = "drop"
+  )
+
+# Print results
+cat("\nAverage Yards Gained by Formation and Quarter:\n")
+cat(strrep("=", 60), "\n")
+cat(sprintf("%-15s %-10s %-20s %-10s\n", 
+            "Formation", "Quarter", "Average Yards", "Plays"))
+cat(strrep("-", 60), "\n")
+
+for (i in seq_len(nrow(yards_by_quarter))) {
+  formation <- yards_by_quarter$offenseFormation[i]
+  quarter <- yards_by_quarter$quarter[i]
+  yards <- yards_by_quarter$avg_yards[i]
+  count <- yards_by_quarter$play_count[i]
+  
+  cat(sprintf("%-15s %-10s %-20.2f %-10d\n", formation, quarter, yards, count))
+}
+
+
+```
+
+GGPlot
+```{r}
+library(ggplot2)
+
+ggplot(yards_by_quarter, 
+       aes(x = offenseFormation, y = avg_yards, fill = factor(quarter))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "gray30") +
+  scale_fill_manual(
+    values = c(
+      "1" = "#FFB703",  # orange-yellow
+      "2" = "#90CAF9",  # light blue
+      "3" = "#2196F3",  # mid blue
+      "4" = "#1565C0",   # deep blue
+      "5" = "#8D99AE"   # gray-blue for OT
+    )
+  ) +
+  labs(
+    title = "Average Yards Gained by Formation and Quarter",
+    x = "Offensive Formation",
+    y = "Average Yards Gained",
+    fill = "Quarter"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+
+```
+
+CONDUCT AN ANOVA TEST 
+```{r}
+# Fit model with interaction term
+model_interaction <- lm(yardsGained ~ offenseFormation *coverage_group , data = clean_plays)
+
+# Show summary
+summary(model_interaction)
+
+```
+
+```{r}
+anova(model_interaction)
+
+```
+GGPlot interaction plot
+```{r}
+library(ggplot2)
+library(dplyr)
+
+interaction_summary <- clean_plays %>%
+  group_by(offenseFormation, coverage_group) %>%
+  summarise(mean_yards = mean(yardsGained, na.rm = TRUE))
+
+ggplot(interaction_summary,
+       aes(x = coverage_group, y = mean_yards, color = offenseFormation, group = offenseFormation)) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Interaction of Offensive Formation and Pass Coverage on Yards Gained",
+    x = "Pass Coverage Type",
+    y = "Average Yards Gained",
+    color = "Offensive Formation"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
