@@ -2,8 +2,13 @@
 title: "Analytical Day Report"
 format:
   pdf:
-    pdf-engine: pdflatex
+    pdf-engine: xelatex
+    papersize: letter
+    geometry: margin=1in
+    fontsize: 11pt
 ---
+
+
 
 
 Step 0:
