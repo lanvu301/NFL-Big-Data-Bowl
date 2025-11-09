@@ -136,6 +136,9 @@ ggplot(formation_success, aes(x = reorder(offenseFormation, Average_Yards_Gained
   ) +
   theme_minimal(base_size = 14) +
   theme(legend.position = "none")
+
+
+
 ```
 Ok trying new plot with freq added to the graph
 ```{r}
@@ -216,10 +219,10 @@ ggplot(yards_by_formation_cov,
   scale_fill_manual(
     values = c(
       "Cover-0"   = "#FFD23F",  # golden yellow
-      "Cover-1"   = "#FFB703",  # orange-yellow
+      "Cover_1"   = "#FFB703",  # orange-yellow
       "Cover-2"   = "#90CAF9",  # light blue
-      "Cover-3"   = "#2196F3",  # mid blue
-      "Cover-6"   = "#1565C0",  # deep blue
+      "Cover_3"   = "#2196F3",  # mid blue
+      "Cover_6"   = "#1565C0",  # deep blue
       "Quarters"  = "#6A1B9A",  # purple accent
       "Red Zone"  = "#E63946",  # red
       "Other_Rare"= "#8D99AE"   # neutral gray
@@ -233,6 +236,77 @@ ggplot(yards_by_formation_cov,
   )+
   theme_minimal(base_size = 13) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+```
+```{r}
+library(ggplot2)
+
+ggplot(plays_clean, aes(x = offenseFormation, y = yardsGained, fill = coverage_group)) +
+  geom_boxplot() +
+  facet_wrap(~coverage_group) +   # change ncol to control layout
+  scale_fill_manual(values = c(
+    "Cover-0"   = "#FFD23F",
+    "Cover_1"   = "#FFB703",
+    "Cover-2"   = "#90CAF9",
+    "Cover_3"   = "#2196F3",
+    "Cover_6"   = "#1565C0",
+    "Quarters"  = "#6A1B9A",
+    "Red Zone"  = "#E63946",
+    "Other_Rare"= "#8D99AE"
+  )) +
+  labs(
+    title = "Distribution of Yards Gained by Formation (Faceted by Coverage)",
+    x = "Offensive Formation",
+    y = "Yards Gained"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+  panel.grid.major.x = element_blank(),
+  panel.grid.minor = element_blank(),
+  strip.background = element_rect(fill = "#F5F5F5", color = NA),
+  strip.text = element_text(face = "bold", size = 12),
+  axis.text.x = element_text(angle = 45, hjust = 1, size = 11),
+  plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+  plot.subtitle = element_text(size = 13, hjust = 0.5),
+  legend.position = "bottom",
+  legend.title = element_text(face = "bold"),
+  legend.text = element_text(size = 10)
+)
+```
+
+
+```{r}
+#Suggest from chat to improve the visual element of my graph
+library(ggplot2)
+library(ggsci)
+
+ggplot(plays_clean, aes(x = offenseFormation, y = yardsGained, fill = coverage_group)) +
+  geom_boxplot(outlier.alpha = 0.25, width = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.4) +
+  stat_summary(fun = median, geom = "text",
+               aes(label = round(..y.., 1)), size = 2.8, vjust = -0.6, color = "black") +
+  facet_wrap(~coverage_group, ncol = 3) +
+  scale_fill_npg(name = "Coverage Type") +
+  coord_cartesian(ylim = c(-15, 35)) +
+  labs(
+    title = "Distribution of Yards Gained by Formation (Faceted by Coverage)",
+    subtitle = "Median yards labeled; dashed line marks neutral (0 yards)",
+    x = "Offensive Formation", 
+    y = "Yards Gained"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "#F5F5F5", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 11),
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    plot.subtitle = element_text(size = 13, hjust = 0.5),
+    legend.position = "bottom"
+  )
 
 ```
 
@@ -336,5 +410,72 @@ ggplot(interaction_summary,
   theme_minimal(base_size = 14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+library(emmeans)
+
+# Get estimated marginal means for each combination
+emm <- emmeans(model_interaction, ~ offenseFormation | coverage_group)
+
+# Compare formations within each coverage
+pairs(emm, adjust = "fdr")
+
+
+library(emmeans)
+library(ggplot2)
+
+emm <- emmeans(model_interaction, ~ offenseFormation * coverage_group)
+
+emm_df <- as.data.frame(emm)
+
+ggplot(emm_df, aes(x = coverage_group, y = emmean, 
+                   color = offenseFormation, group = offenseFormation)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), 
+                width = 0.2, alpha = 0.4) +
+  labs(
+    title = "Interaction Between Formation and Coverage Type",
+    x = "Defensive Coverage",
+    y = "Estimated Yards Gained",
+    color = "Offensive Formation"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    legend.position = "right",
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+
+#Facet_wrap
+ggplot(emm_df, aes(x = coverage_group, y = emmean)) +
+  geom_line(aes(group = 1), color = "#2E86AB", size = 1.1) +
+  geom_point(size = 2.2, color = "#2E86AB") +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE),
+                width = 0.2, alpha = 0.5) +
+  facet_wrap(~ offenseFormation, ncol = 3) +
+  labs(
+    title = "Estimated Yards by Coverage (Faceted by Offensive Formation)",
+    x = "Coverage Type",
+    y = "Predicted Yards Gained"
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+
+
 ```
+
+
+OK LETS DIG DEEPER
+PULL IN THE GAMES.CSV THAT CONTAIN THE SCORE AND THE TEAM
+```{r}
+library(readr)
+games <- read_csv("nfl-big-data-bowl-2025/games.csv")
+View(games)
+```
+
+
+
 
