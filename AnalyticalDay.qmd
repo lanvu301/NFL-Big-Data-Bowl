@@ -187,13 +187,37 @@ See the distribution after grouping
 
 ```{r}
 ggplot(clean_plays, aes(x = coverage_group)) +
-  geom_bar(fill = "seagreen3", color = "black", alpha = 0.8) +
-  labs(title = "Distribution of Pass Coverage Types",
-       x = "PFF Pass Coverage",
-       y = "Count") +
+  geom_bar(fill = "seagreen3", color = "black") +
+  geom_text(
+    stat = "count",
+    aes(label = paste0(round((..count..) / sum(..count..) * 100, 1), "%")),
+    vjust = -0.1,
+size = 4
+  ) +
+  labs(
+    title = "Distribution of Pass Coverage Types",
+    x = "PFF Pass Coverage",
+    y = "Count"
+  ) +
   theme_minimal(base_size = 14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+
+ggplot(clean_plays, aes(x = offenseFormation)) +
+  geom_bar(fill = "seagreen3", color = "black") +
+  geom_text(
+    stat = "count",
+    aes(label = paste0(round((..count..) / sum(..count..) * 100, 1), "%")),
+    vjust = -0.1,
+    size = 4
+  ) +
+  labs(
+    title = "Distribution of Offense Formation",
+    x = "Offense Formation",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 Now run the plot
@@ -243,7 +267,7 @@ ggplot(yards_by_formation_cov,
 ```{r}
 library(ggplot2)
 
-ggplot(plays_clean, aes(x = offenseFormation, y = yardsGained, fill = coverage_group)) +
+ggplot(clean_plays, aes(x = offenseFormation, y = yardsGained, fill = coverage_group)) +
   geom_boxplot() +
   facet_wrap(~coverage_group) +   # change ncol to control layout
   scale_fill_manual(values = c(
@@ -282,7 +306,7 @@ ggplot(plays_clean, aes(x = offenseFormation, y = yardsGained, fill = coverage_g
 library(ggplot2)
 library(ggsci)
 
-ggplot(plays_clean, aes(x = offenseFormation, y = yardsGained, fill = coverage_group)) +
+ggplot(clean_plays, aes(x = offenseFormation, y = yardsGained, fill = coverage_group)) +
   geom_boxplot(outlier.alpha = 0.25, width = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.4) +
   stat_summary(fun = median, geom = "text",
@@ -308,6 +332,90 @@ ggplot(plays_clean, aes(x = offenseFormation, y = yardsGained, fill = coverage_g
     legend.position = "bottom"
   )
 
+```
+```{r}
+# Group 1: First four coverage types
+cover_group1 <- c("Other_Rare", "Cover-0", "Cover_1", "Cover-2")
+# Group 2: Remaining four coverage types
+cover_group2 <- c("Cover_3", "Cover_6", "Quarters", "Red Zone")
+
+# Split data
+clean_plays_1 <- subset(clean_plays, coverage_group %in% cover_group1)
+clean_plays_2 <- subset(clean_plays, coverage_group %in% cover_group2)
+
+
+#Create a function
+plot_yards_by_formation <- function(data_subset) {
+  ggplot(data_subset, aes(x = offenseFormation, y = yardsGained, fill = coverage_group)) +
+    geom_boxplot(outlier.alpha = 0.25, width = 0.7) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.4) +
+    stat_summary(fun = median, geom = "text",
+                 aes(label = round(..y.., 1)), size = 2.8, vjust = -0.6, color = "black") +
+    facet_wrap(~coverage_group, ncol = 3, scales = "free_y", drop = TRUE) +  # <– drop unused groups
+    scale_fill_npg(name = "Coverage Type") +
+    coord_cartesian(ylim = c(-15, 35)) +
+    labs(
+      title = "Distribution of Yards Gained by Formation",
+      x = "Offensive Formation",
+      y = "Yards Gained"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      strip.background = element_rect(fill = "#F5F5F5", color = NA),
+      strip.text = element_text(face = "bold", size = 12),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 11),
+      plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+      plot.subtitle = element_text(size = 13, hjust = 0.5),
+      legend.position = "bottom"
+    )
+}
+
+plot_yards_by_formation1 <- function(data_subset) {
+  ggplot(data_subset, aes(x = offenseFormation, y = yardsGained, fill = coverage_group)) +
+    geom_boxplot(outlier.alpha = 0.25, width = 0.6) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.6) +
+    stat_summary(
+      fun = median, geom = "text",
+      aes(label = round(..y.., 1)),
+      size = 2, vjust = -0.5, color = "black", fontface = "bold"
+    ) +
+    facet_wrap(~coverage_group, ncol = 3, scales = "free_y", drop = TRUE) +
+    scale_fill_npg(name = "Coverage Type") +
+    coord_cartesian(ylim = c(-15, 35)) +
+    labs(
+      title = "Distribution of Yards Gained by Offensive Formation (Faceted by Coverage)",
+      subtitle = "Median yards labeled; dashed line marks neutral (0 yards)",
+      x = "Offensive Formation",
+      y = "Yards Gained"
+    ) +
+    theme_minimal(base_size = 18) +
+    theme(
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      strip.background = element_rect(fill = "#F5F5F5", color = NA),
+      strip.text = element_text(face = "bold", size = 20),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 16),
+      axis.text.y = element_text(size = 16),
+      axis.title = element_text(size = 20, face = "bold"),
+      plot.title = element_text(face = "bold", size = 26, hjust = 0.5),
+      plot.subtitle = element_text(size = 18, hjust = 0.5),
+      legend.position = "bottom",
+      legend.title = element_text(size = 18, face = "bold"),
+      legend.text = element_text(size = 16),
+      legend.key.size = unit(1.2, "cm"),
+      panel.spacing = unit(1.5, "lines")
+    )
+}
+
+
+p1 <- plot_yards_by_formation1(clean_plays_1)
+
+p2 <- plot_yards_by_formation1(clean_plays_2)
+
+p1
+p2
 ```
 
 OK NOW OFFENSIVE FORMATION IN DIFFERENT QUARTER
@@ -386,9 +494,8 @@ summary(model_interaction)
 
 ```{r}
 anova(model_interaction)
-
 ```
-GGPlot interaction plot
+GGPlot INteraction plot
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -420,7 +527,6 @@ pairs(emm, adjust = "fdr")
 
 
 library(emmeans)
-library(ggplot2)
 
 emm <- emmeans(model_interaction, ~ offenseFormation * coverage_group)
 
@@ -466,6 +572,52 @@ ggplot(emm_df, aes(x = coverage_group, y = emmean)) +
 
 
 ```
+Match-up frequency
+```{r}
+
+formation_coverage_counts <- clean_plays %>%
+  filter(!is.na(offenseFormation), !is.na(coverage_group)) %>%
+  count(offenseFormation, coverage_group) %>%
+  arrange(desc(n))
+
+
+formation_coverage_pct <- clean_plays %>%
+  filter(!is.na(offenseFormation), !is.na(coverage_group)) %>%
+  count(offenseFormation, coverage_group) %>%
+  group_by(offenseFormation) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup()
+
+
+ggplot(formation_coverage_pct, aes(x = coverage_group, y = offenseFormation, fill = pct)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = paste0(round(pct, 1), "%")), color = "black", size = 4) +
+  scale_fill_gradient(low = "lightyellow", high = "seagreen4") +
+  labs(
+    title = "Distribution of Pass Coverages by Offensive Formation",
+    x = "Pass Coverage Type",
+    y = "Offensive Formation",
+    fill = "Percentage of Plays"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+
+ggplot(formation_coverage_counts, aes(x = coverage_group, y = offenseFormation, fill = n)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "lightyellow", high = "seagreen4") +
+  labs(
+    title = "Frequency of Offensive Formation × Pass Coverage Combinations",
+    x = "Pass Coverage Type",
+    y = "Offensive Formation",
+    fill = "Play Count"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
 
 
 OK LETS DIG DEEPER
@@ -475,7 +627,474 @@ library(readr)
 games <- read_csv("nfl-big-data-bowl-2025/games.csv")
 View(games)
 ```
+```{r}
+model_full <- lm(yardsGained ~ offenseFormation * coverage_group + yardsToGo + quarter + playAction, data = clean_plays)
+summary(model_full)
+
+```
+Investigate the 4th quarter
+
+```{r}
+clean_plays_quarter <- clean_plays %>%
+  mutate(game_phase = case_when(
+    quarter %in% 1:3 ~ "Early (Q1–Q3)",
+    quarter %in% 4:5 ~ "Late / Overtime",
+    TRUE ~ "Unknown"
+  ))
+
+
+model_full_4<- lm(yardsGained ~ offenseFormation * coverage_group+game_phase, data = clean_plays_quarter)
+summary(model_full_4)
+```
+```{r}
+ggplot(clean_plays_quarter, aes(x = game_phase)) +
+  geom_bar(fill = "seagreen3", color = "black") +
+  labs(title = "Number of Plays by Game Phase", x = "Game Phase", y = "Count") +
+  theme_minimal(base_size = 14)
+
+library(dplyr)
+formation_phase_counts <- clean_plays_quarter %>%
+  count(game_phase, offenseFormation) %>%
+  group_by(game_phase) %>%
+  mutate(pct = n / sum(n) * 100)
+
+ggplot(formation_phase_counts,
+       aes(x = offenseFormation, y = pct, fill = game_phase)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Offensive Formation Distribution by Game Phase",
+       x = "Offensive Formation", y = "Percentage") +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+ggplot(clean_plays_quarter, aes(x = offenseFormation, y = yardsGained, fill = game_phase)) +
+  geom_boxplot(outlier.alpha = 0.2) +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(title = "Yards Gained by Formation and Game Phase",
+       x = "Offensive Formation", y = "Yards Gained") +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 
+
+# Exclude JUMBO from both groups because it only appear in specific situation
+clean_plays_1 <- subset(
+  clean_plays_quarter,
+  coverage_group %in% cover_group1 & offenseFormation != "JUMBO"
+)
+
+clean_plays_2 <- subset(
+  clean_plays_quarter,
+  coverage_group %in% cover_group2 & offenseFormation != "JUMBO"
+)
+
+
+
+ggplot(clean_plays_1, aes(x = coverage_group, y = yardsGained, fill = game_phase)) +
+  geom_boxplot() +
+  facet_wrap(~ offenseFormation, ncol = 3) +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(title = "Yards Gained by Coverage, Game Phase, and Formation",
+       subtitle = "Cover 0-2 & Other_Rare",
+       x = "Coverage Type", y = "Yards Gained") +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(clean_plays_2, aes(x = coverage_group, y = yardsGained, fill = game_phase)) +
+  geom_boxplot() +
+  facet_wrap(~ offenseFormation, ncol = 3) +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(subtitle = "Cover 3-6, Quarter & Red Zone")+
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(clean_plays_quarter, aes(x = coverage_group, y = yardsGained, fill = game_phase)) +
+  geom_boxplot() +
+  facet_wrap(~ offenseFormation, ncol = 3) +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(title = "Yards Gained by Coverage, Game Phase, and Formation",
+       subtitle = "Cover 3-6, Quarter & Red Zone",
+       x = "Coverage Type", y = "Yards Gained") +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+ggplot(clean_plays_2, aes(x = coverage_group, y = yardsGained, fill = game_phase)) +
+  geom_boxplot(outlier.alpha = 0.25, width = 0.7, color = "gray30") +
+  facet_wrap(~ offenseFormation, ncol = 3) +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(
+    subtitle = "Cover 3–6, Quarters & Red Zone",
+    x = "Coverage Type", 
+    y = "Yards Gained"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    # removes x-axis labels and tick marks
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+
+    # keeps the axis title and improves readability
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "#F5F5F5", color = NA),
+    strip.text = element_text(face = "bold", size = 12),
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    plot.subtitle = element_text(size = 13, hjust = 0.5)
+  )
+
+
+clean_plays_quarter %>%
+  filter(game_phase == "Late / Overtime") %>%  # filter only Cover-2 plays
+  group_by(game_phase,possessionTeam
+           ) %>%
+  summarise(
+    mean_yards = mean(yardsGained, na.rm = TRUE),
+    sd_yards   = sd(yardsGained, na.rm = TRUE),
+    n          = n()
+  ) %>%
+  arrange(desc(mean_yards))
+
+```
+
+Something else with 3 way interaction
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(patchwork) 
+
+# for multi-panel layout
+clean_plays_3way <- clean_plays_quarter %>%
+  filter(!is.na(offenseFormation), !is.na(coverage_group), !is.na(game_phase)) %>%
+  mutate(
+    game_phase = factor(game_phase, levels = c("Early (Q1–Q3)", "Late / Overtime")),
+    offenseFormation = factor(offenseFormation),
+    coverage_group = factor(coverage_group)
+  )
+
+#Plot 1 
+p1 <- ggplot(clean_plays_quarter, aes(x = offenseFormation, y = yardsGained, fill = game_phase)) +
+  geom_boxplot(outlier.alpha = 0.25) +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(
+    title = "Yards Gained by Formation & Game Phase",
+    x = "Offensive Formation", y = "Yards Gained"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+
+formation_phase_counts <- clean_plays_quarter %>%
+  count(game_phase, offenseFormation) %>%
+  group_by(game_phase) %>%
+  mutate(pct = n / sum(n) * 100)
+
+p2 <- ggplot(formation_phase_counts, aes(x = offenseFormation, y = pct, fill = game_phase)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  labs(
+    title = "Formation Usage by Game Phase",
+    x = "Offensive Formation", y = "Percentage of Plays"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+
+
+formation_coverage_pct <- clean_plays %>%
+  count(offenseFormation, coverage_group) %>%
+  group_by(offenseFormation) %>%
+  mutate(pct = n / sum(n) * 100)
+
+p3 <- ggplot(formation_coverage_pct, aes(x = coverage_group, y = offenseFormation, fill = pct)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = paste0(round(pct, 1), "%")), size = 4) +
+  scale_fill_gradient(low = "lightyellow", high = "seagreen4") +
+  labs(
+    title = "Coverage Type Distribution by Formation",
+    x = "Pass Coverage Type", y = "Offensive Formation", fill = "% of Plays"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p1
+p2
+p3
+```
+
+INVESTIGATE JUMBO AND WILDCAT
+```{r}
+library(dplyr)
+
+clean_plays_quarter %>%
+  filter(offenseFormation %in% c("JUMBO", "WILDCAT")) %>%
+  summarise(
+    avg_yardsToGo = mean(yardsToGo, na.rm = TRUE),
+    median_yardsToGo = median(yardsToGo, na.rm = TRUE),
+    avg_yardline = mean(absoluteYardlineNumber, na.rm = TRUE),
+    median_yardline = median(absoluteYardlineNumber, na.rm = TRUE),
+    mean_yardsGained = mean(yardsGained, na.rm = TRUE),
+    n = n()
+  )
+
+```
+
+MOVE IT UP A LEVEL
+```{r}
+library(dplyr)
+
+clean_plays_quarter_formation <- clean_plays_quarter %>%
+  mutate(formation_group = case_when(
+    offenseFormation %in% c("SHOTGUN", "SINGLEBACK", "PISTOL") ~ "Standard",
+    offenseFormation %in% c("EMPTY", "I_FORM") ~ "Contextual",
+    offenseFormation %in% c("JUMBO", "WILDCAT") ~ "Situational",
+    TRUE ~ "Other"   # catch any undefined or rare formations
+  ))
+table(clean_plays_quarter_formation$formation_group)
+
+#
+clean_plays_quarter_formation %>%
+  group_by(formation_group, offenseFormation) %>%
+  summarise(
+    mean_yards = mean(yardsGained, na.rm = TRUE),
+    sd_yards = sd(yardsGained, na.rm = TRUE),
+    n = n()
+  ) %>%
+  arrange(formation_group, desc(mean_yards))
+
+#Boxplot
+ggplot(clean_plays_quarter_formation, aes(x = formation_group, y = yardsGained, fill = formation_group)) +
+  geom_boxplot(outlier.alpha = 0.25, width = 0.7, color = "gray30") +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(
+    title = "Distribution of Yards Gained by Formation Group",
+    x = "Formation Group",
+    y = "Yards Gained"
+  ) +
+  scale_fill_manual(values = c(
+    "Standard" = "#FFD54F",
+    "Contextual" = "#FBC02D",
+    "Situational" = "#E1B12C",
+    "Other" = "gray70"
+  )) +
+  theme_minimal(base_size = 16) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+#Boxplot WITH QUARTER
+ggplot(clean_plays_quarter_formation, 
+       aes(x = formation_group, y = yardsGained, fill = game_phase)) +
+  geom_boxplot(outlier.alpha = 0.25, width = 0.7, color = "gray30") +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(
+    title = "Yards Gained by Formation Group and Game Phase",
+    subtitle = "Color shows game phase (e.g., Early, Mid, Late)",
+    x = "Formation Group",
+    y = "Yards Gained",
+    fill = "Game Phase"
+  ) +
+  scale_fill_manual(values = c(
+    "Early (Q1–Q3)" = "#FFD54F",
+    "Late / Overtime" = "#E1B12C"
+  )) +
+  theme_minimal(base_size = 16) +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_text(size = 14, face = "bold"),
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+model_phase <- aov(yardsGained ~ formation_group * game_phase*coverage_group, 
+                   data = clean_plays_quarter_formation)
+summary(model_phase)
+
+lm_model <- lm(
+  yardsGained ~ offenseFormation*coverage_group,
+  data = clean_plays_quarter_formation
+)
+summary(lm_model)
+
+lm_model1 <- lm(
+  yardsGained ~ formation_group  * coverage_group,
+  data = clean_plays_quarter_formation
+)
+summary(lm_model1)
+
+```
+
+Group WILDCAT AND JUMBO TOGETHER
+```{r}
+clean_plays_quarter_formation <- clean_plays_quarter_formation %>%
+  mutate(formation_refined = case_when(
+    offenseFormation %in% c("JUMBO", "WILDCAT") ~ "Situational",
+    TRUE ~ offenseFormation
+  ))
+
+#Now draw some plot
+
+
+#Plot 1 
+ggplot(clean_plays_quarter_formation, aes(x = formation_refined, y = yardsGained, fill = game_phase)) +
+  geom_boxplot(outlier.alpha = 0.25) +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(
+    title = "Yards Gained by Formation & Game Phase",
+    x = "Offensive Formation", y = "Yards Gained"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+
+formation_phase_counts <- clean_plays_quarter_formation %>%
+  count(game_phase, formation_refined) %>%
+  group_by(game_phase) %>%
+  mutate(pct = n / sum(n) * 100)
+
+#Plot 2
+ p1<-ggplot(formation_phase_counts, aes(x = formation_refined, y = pct, fill = game_phase)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+   geom_text(
+    aes(label = paste0(round(pct, 1), "%")),     # show percentages with one decimal
+    position = position_dodge(width = 0.9),      # align text with each bar group
+    vjust = -0.4,                                # vertical adjustment above bar
+    size = 3.5                                   # text size
+  ) +
+  labs(
+    title = "Formation Usage by Game Phase",
+    x = "Offensive Formation", y = "Percentage of Plays"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+
+
+formation_coverage_pct <- clean_plays_quarter_formation %>%
+  count(formation_refined, coverage_group) %>%
+  group_by(formation_refined) %>%
+  mutate(pct = n / sum(n) * 100)
+
+ ggplot(formation_coverage_pct, aes(x = coverage_group, y = formation_refined, fill = pct)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = paste0(round(pct, 1), "%")), size = 4) +
+  scale_fill_gradient(low = "lightyellow", high = "seagreen4") +
+  labs(
+    title = "Coverage Type Distribution by Formation",
+    x = "Pass Coverage Type", y = "Offensive Formation", fill = "% of Plays"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+ggplot(clean_plays_quarter_formation, aes(x = formation_refined, y = yardsGained, fill = coverage_group)) +
+  geom_boxplot() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40", linewidth = 0.4) +
+  stat_summary(fun = median, geom = "text",
+               aes(label = round(..y.., 1)), size = 4, vjust = -0.5, color = "black") +
+  facet_wrap(~coverage_group, ncol = 3) +
+  scale_fill_npg(name = "Coverage Type") +
+  coord_cartesian(ylim = c(-15, 35)) +
+  labs(
+    title = "Distribution of Yards Gained by Formation",
+
+    x = "Offensive Formation", 
+    y = "Yards Gained"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "#F5F5F5", color = NA),
+    strip.text = element_text(face = "bold", size = 13),
+    axis.text.x = element_text(angle = 45, hjust = 1.2, size = 10),
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    plot.subtitle = element_text(size = 13, hjust = 0.5),
+    legend.position = "bottom"
+  )
+
+
+clean_plays_f1 <- subset(
+  clean_plays_quarter_formation,
+  coverage_group %in% cover_group1)
+
+clean_plays_2 <- subset(
+  clean_plays_quarter,
+  coverage_group %in% cover_group2)
+
+ggplot(clean_plays_quarter_formation, 
+       aes(x = formation_refined, y = yardsGained, fill = game_phase)) +
+  geom_boxplot(outlier.alpha = 0.25, width = 0.7, color = "gray40") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.4) +
+  facet_wrap(~ coverage_group, ncol = 3, scales = "free_y") +
+  scale_fill_manual(
+    values = c("#FFD54F", "#4DB6AC"),   # gold and teal (matches your poster)
+    name = "Game Phase",
+    labels = c("Early (Q1–Q3)", "Late / Overtime")
+  ) +
+  coord_cartesian(ylim = c(-10, 30)) +
+  labs(
+    title = "Yards Gained by Formation, Game Phase, and Coverage Type",
+    subtitle = "Faceted by Defensive Coverage",
+    x = "Offensive Formation",
+    y = "Yards Gained"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    # Clean panel backgrounds
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "#F5F5F5", color = NA),
+    strip.text = element_text(face = "bold", size = 14),
+
+    # Axis and label styling
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 11, color = "gray20"),
+    axis.title.x = element_text(size = 14, margin = margin(t = 10)),
+    axis.title.y = element_text(size = 14, margin = margin(r = 10)),
+    axis.text.y = element_text(size = 11, color = "gray20"),
+
+    # Title/subtitle
+    plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
+    plot.subtitle = element_text(size = 14, hjust = 0.5, color = "gray30"),
+
+    # Legend improvements
+    legend.position = "bottom",
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12)
+  )
+
+
+
+```
+```{r}
+library(dplyr)
+
+cover2_summary <- clean_plays_quarter_formation %>%
+  filter(coverage_group == "Cover-2") %>%
+  group_by(offenseFormation) %>%
+  summarise(
+    n = n(),
+    mean_yards = mean(yardsGained, na.rm = TRUE),
+    median_yards = median(yardsGained, na.rm = TRUE),
+    sd_yards = sd(yardsGained, na.rm = TRUE)
+  ) %>%
+  arrange(desc(mean_yards))
+
+cover2_summary
+
+```
 
