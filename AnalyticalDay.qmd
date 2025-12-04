@@ -1508,4 +1508,69 @@ library(patchwork)
 p_combine1<-p_form + p_def + plot_layout(ncol = 2, widths = c(1, 1))
 
 ```
+Re-state the model
+```{r}
+# 1. FIT THE MODEL
+model_interaction <- lm(yardsGained ~ offenseFormation * coverage_group+game_phase,
+                        data = clean_plays_quarter_formation)
+```
+
+
+```{r}
+#Normality
+library(nortest)
+ad.test(residuals(model_interaction))
+hist(residuals(model_interaction))
+plot(model_interaction, which = 2)
+```
+```{r}
+library(lmtest)
+
+library(sandwich)
+plot(model_interaction, which = 3)
+bptest(model_interaction)
+plot(model_interaction, which = 1)
+
+
+coeftest(model_interaction,
+         vcov = vcovHC(model_interaction, type = "HC3"))
+
+
+```
+```{r}
+library(car)
+library(knitr)
+library(olsrr)
+model_main <- lm(yardsGained ~ offenseFormation + coverage_group+game_phase,
+                 data = clean_plays_quarter_formation)
+
+vif_table <- vif(model_main)
+
+# Convert to data frame for kable
+vif_df <- as.data.frame(vif_table)
+
+# Add row names as a column
+vif_df$Predictor <- rownames(vif_df)
+rownames(vif_df) <- NULL
+
+# Reorder columns
+vif_df <- vif_df[, c("Predictor", "GVIF", "Df", "GVIF^(1/(2*Df))")]
+
+# Print clean table
+kable(
+  vif_df,
+  caption = "Multicollinearity Diagnostics (GVIF Results)",
+  digits = 6
+)
+
+#Outlier
+plot(model_interaction, which = 4)
+
+ols_plot_cooksd_bar(model_interaction)
+ols_plot_resid_stud(model_interaction)
+ols_plot_influence(model_interaction)
+
+
+
+```
 
