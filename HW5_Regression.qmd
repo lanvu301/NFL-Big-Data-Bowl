@@ -1,0 +1,145 @@
+---
+title: "Lan Vu HW5"
+format: pdf
+editor: visual
+---
+
+## Run the code and library
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(psych)
+```
+
+```{r}
+df <- read_excel("~/Downloads/DCCT.xlsx")
+View(df)
+```
+
+## Part 1
+
+1.  **Univariate Analysis**
+
+```{r}
+df %>%
+  select(BMI12, BMI00, AGE) %>%
+  psych::describe()
+
+
+#BMI 12
+ggplot(df, aes(x = BMI12)) +
+  geom_histogram(bins = 20, fill = "skyblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Histogram of BMI at 12 Months", x = "BMI12", y = "Count")
+
+ggplot(df, aes(y = BMI12)) +
+  geom_boxplot(fill = "lightgreen") +
+  theme_minimal() +
+  labs(title = "Boxplot of BMI12", y = "BMI12")
+
+#BMI10
+
+ggplot(df, aes(x = BMI00)) +
+  geom_histogram(bins = 20, fill = "steelblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Histogram of Baseline BMI", x = "BMI00", y = "Count")
+
+ggplot(df, aes(y = BMI00)) +
+  geom_boxplot(fill = "lightgreen") +
+  theme_minimal() +
+  labs(title = "Boxplot of BMI00", y = "BMI00")
+
+
+#Age
+ggplot(df, aes(x = AGE)) +
+  geom_histogram(bins = 15, fill = "orange", color = "black") +
+  theme_minimal() +
+  labs(title = "Histogram of Age", x = "Age", y = "Count")
+
+ggplot(df, aes(y = AGE)) +
+  geom_boxplot(fill = "lightyellow") +
+  theme_minimal() +
+  labs(title = "Boxplot of AGE", y = "Age")
+
+
+
+```
+
+**AGE**
+
+For variable age, we can see that it has the mean of 34.86 and median of 34.83 its value range from 21.00 to 48.00.
+
+From the histogram we can see that the graph is somewhat normal and uniform even though there is no peak,
+
+BMI AT 12 MONTHS
+
+We can see that there are some missing values in this variable as its seems to have lower number of observations compare to the other 2 variables. It have the mean ad median at 25.14 and 24.75 respectively. From the graph, we can see that its distribution had a little bit of a right-skewed tails not too much. Overall it seems to have a normal distribution with some outliners in the far right of the graph.
+
+BASELINE BMI
+
+From the table, we can see that people participate in this trial has a mean BMI of 23.72 and median of 23.58. Theirs BMI score range from 16.28 to 34.39. The distriubtion of baseline BMI is quite normally distributed.
+
+From the boxplots, we can see the that the two whisker are somewhat sysmestric. However, we can see some outliers which can be worth investigate later in the analysis phrase
+
+Distributions of GROUP and GENDER
+
+```{r}
+table(df$GROUP)
+prop.table(table(df$GROUP))
+
+table(df$GENDER)
+prop.table(table(df$GENDER))
+
+
+#FREQ TABLE
+
+ggplot(df, aes(x = GROUP, fill = GROUP)) +
+  geom_bar(color = "black") +
+  scale_fill_manual(values = c("INT" = "#1b9e77", "STD" = "#d95f02")) +
+  labs(title = "Distribution of Treatment Group", x = "Treatment Group", y = "Count") +
+  theme_minimal()
+
+
+ggplot(df, aes(x = GENDER, fill = GENDER)) +
+  geom_bar(color = "black") +
+  scale_fill_manual(values = c("INT" = "#1b9e77", "STD" = "#d95f02")) +
+  labs(title = "Distribution of Treatment Group", x = "GENDER", y = "Count") +
+  theme_minimal()
+
+```
+
+For Groups variable:\
+Based on the frequency table, we can tell that the disitribution within the groups is quite similar.
+
+However, in Gender, we can tell that there are more male in this trial study compare to females participators.
+
+2.  **Bivariate Analysis**
+
+a\.
+
+```{r}
+# Boxplot of BMI12 by treatment group
+ggplot(df, aes(x = GROUP, y = BMI12, fill = GROUP)) +
+  geom_boxplot(color = "black") +
+  scale_fill_manual(values = c("INT" = "#1b9e77", "STD" = "#d95f02")) +
+  labs(title = "BMI at 12 Months by Treatment Group",
+       x = "Treatment Group",
+       y = "BMI12 (kg/m²)") +
+  theme_minimal()
+
+```
+
+## Running Code
+
+## Running Code
+
+## Running Code
+
+## Running Code Running Code
+
+## Running Code
+
+## Running Code
+
+## Running Code
